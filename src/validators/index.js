@@ -13,20 +13,6 @@ exports.loginRules = [
   body('password').notEmpty().withMessage('Password is required'),
 ];
 
-exports.verifyOtpRules = [
-  body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
-  body('otp')
-    .trim()
-    .notEmpty()
-    .withMessage('Verification code is required')
-    .isLength({ min: 6, max: 6 })
-    .withMessage('Code must be 6 digits'),
-];
-
-exports.resendOtpRules = [
-  body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
-];
-
 exports.postRules = [
   body('content')
     .trim()
