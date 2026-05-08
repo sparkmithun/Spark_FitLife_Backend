@@ -2,13 +2,26 @@ const nodemailer = require('nodemailer');
 
 class EmailService {
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.SMTP_EMAIL,
-        pass: process.env.SMTP_PASSWORD, // Gmail App Password
-      },
-    });
+    this.transporter = null;
+  }
+
+  /**
+   * Lazy-initialize transporter (env vars available at runtime, not import time on Render)
+   */
+  getTransporter() {
+    if (!this.transporter) {
+      if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
+        throw new Error('SMTP_EMAIL and SMTP_PASSWORD environment variables are required');
+      }
+      this.transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.SMTP_EMAIL,
+          pass: process.env.SMTP_PASSWORD,
+        },
+      });
+    }
+    return this.transporter;
   }
 
   /**
@@ -46,7 +59,7 @@ class EmailService {
       `,
     };
 
-    await this.transporter.sendMail(mailOptions);
+    await this.getTransporter().sendMail(mailOptions);
   }
 }
 
