@@ -6,7 +6,7 @@ class EmailService {
   }
 
   /**
-   * Lazy-initialize transporter (env vars available at runtime, not import time on Render)
+   * Lazy-initialize transporter using explicit SMTP config (more reliable than 'service' shortcut)
    */
   getTransporter() {
     if (!this.transporter) {
@@ -14,9 +14,9 @@ class EmailService {
         throw new Error('SMTP_EMAIL and SMTP_PASSWORD environment variables are required');
       }
       this.transporter = nodemailer.createTransport({
-        service: 'gmail',
-        pool: true,
-        maxConnections: 3,
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // use STARTTLS
         auth: {
           user: process.env.SMTP_EMAIL,
           pass: process.env.SMTP_PASSWORD,

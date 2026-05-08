@@ -41,10 +41,15 @@ class AuthService {
       expiresAt,
     });
 
-    // Send OTP email in background (don't wait for SMTP round-trip)
-    emailService.sendOTP(email, otp, name).catch((err) => {
+    // Send OTP email (await so errors surface to user)
+    try {
+      await emailService.sendOTP(email, otp, name);
+    } catch (err) {
       console.error('Failed to send OTP email:', err.message);
-    });
+      // Clean up OTP record since email failed
+      await Otp.deleteMany({ email });
+      throw new AppError('Failed to send verification email. Please try again.', 500);
+    }
 
     return {
       message: 'Verification code sent to your email',
@@ -125,10 +130,13 @@ class AuthService {
     otpRecord.attempts = 0;
     await otpRecord.save();
 
-    // Send in background
-    emailService.sendOTP(email, otp, otpRecord.userData.name).catch((err) => {
+    // Send resend email (await so errors surface)
+    try {
+      await emailService.sendOTP(email, otp, otpRecord.userData.name);
+    } catch (err) {
       console.error('Failed to resend OTP email:', err.message);
-    });
+      throw new AppError('Failed to send verification email. Please try again.', 500);
+    }
 
     return { message: 'New verification code sent to your email', email };
   }
