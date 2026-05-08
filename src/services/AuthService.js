@@ -45,10 +45,10 @@ class AuthService {
     try {
       await emailService.sendOTP(email, otp, name);
     } catch (err) {
-      console.error('Failed to send OTP email:', err.message);
+      console.error('SMTP ERROR:', err.code, err.message, err.responseCode);
       // Clean up OTP record since email failed
       await Otp.deleteMany({ email });
-      throw new AppError('Failed to send verification email. Please try again.', 500);
+      throw new AppError(`Email sending failed: ${err.code || err.message}`, 500);
     }
 
     return {

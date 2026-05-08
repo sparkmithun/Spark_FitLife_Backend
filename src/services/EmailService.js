@@ -14,20 +14,22 @@ class EmailService {
         throw new Error('SMTP_EMAIL and SMTP_PASSWORD environment variables are required');
       }
 
-      const smtpPassword = process.env.SMTP_PASSWORD.replace(/\s+/g, ''); // strip spaces from app password
+      console.log('Initializing SMTP transporter for:', process.env.SMTP_EMAIL);
 
       this.transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 465,
-        secure: true, // direct TLS connection (more reliable than STARTTLS on port 587)
+        secure: true,
         auth: {
           user: process.env.SMTP_EMAIL,
-          pass: smtpPassword,
+          pass: process.env.SMTP_PASSWORD,
         },
-        connectionTimeout: 10000, // 10s to establish connection
-        greetingTimeout: 10000,   // 10s for SMTP greeting
-        socketTimeout: 15000,     // 15s for socket inactivity
-        logger: process.env.NODE_ENV !== 'production', // log in dev
+        tls: {
+          rejectUnauthorized: false,
+        },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
       });
     }
     return this.transporter;
