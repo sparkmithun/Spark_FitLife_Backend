@@ -18,7 +18,9 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://spark-fitlife-frontend.onrender.com'
+    'https://spark-fitlife-frontend.onrender.com',
+    'https://sparkfitlife.online',
+    'https://www.sparkfitlife.online'
   ],
   credentials: true,
 }));
