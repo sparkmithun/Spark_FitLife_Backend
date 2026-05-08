@@ -41,15 +41,10 @@ class AuthService {
       expiresAt,
     });
 
-    // Send OTP email (await so errors surface to user)
-    try {
-      await emailService.sendOTP(email, otp, name);
-    } catch (err) {
+    // Send OTP email in background (don't block the API response)
+    emailService.sendOTP(email, otp, name).catch((err) => {
       console.error('SMTP ERROR:', err.code, err.message, err.responseCode);
-      // Clean up OTP record since email failed
-      await Otp.deleteMany({ email });
-      throw new AppError(`Email sending failed: ${err.code || err.message}`, 500);
-    }
+    });
 
     return {
       message: 'Verification code sent to your email',
@@ -130,13 +125,10 @@ class AuthService {
     otpRecord.attempts = 0;
     await otpRecord.save();
 
-    // Send resend email (await so errors surface)
-    try {
-      await emailService.sendOTP(email, otp, otpRecord.userData.name);
-    } catch (err) {
-      console.error('Failed to resend OTP email:', err.message);
-      throw new AppError('Failed to send verification email. Please try again.', 500);
-    }
+    // Send email in background (don't block API)
+    emailService.sendOTP(email, otp, otpRecord.userData.name).catch((err) => {
+      console.error('SMTP resend ERROR:', err.code, err.message);
+    });
 
     return { message: 'New verification code sent to your email', email };
   }
