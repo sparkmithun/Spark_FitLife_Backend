@@ -3,10 +3,12 @@ const nodemailer = require('nodemailer');
 class EmailService {
   constructor() {
     this.transporter = null;
+    this.verified = false;
   }
 
   /**
-   * Lazy-initialize transporter with timeouts and direct TLS (port 465)
+   * Create transporter following Nodemailer docs exactly:
+   * host + port 587 + secure:false (STARTTLS)
    */
   getTransporter() {
     if (!this.transporter) {
@@ -14,25 +16,33 @@ class EmailService {
         throw new Error('SMTP_EMAIL and SMTP_PASSWORD environment variables are required');
       }
 
-      console.log('Initializing SMTP transporter for:', process.env.SMTP_EMAIL);
-
       this.transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+        port: 587,
+        secure: false, // use STARTTLS (upgrade connection to TLS after connecting)
         auth: {
           user: process.env.SMTP_EMAIL,
           pass: process.env.SMTP_PASSWORD,
         },
-        tls: {
-          rejectUnauthorized: false,
-        },
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 20000,
       });
     }
     return this.transporter;
+  }
+
+  /**
+   * Verify SMTP connection (call once to validate credentials)
+   */
+  async verifyConnection() {
+    if (this.verified) return true;
+    try {
+      await this.getTransporter().verify();
+      console.log('SMTP: Server is ready to take our messages');
+      this.verified = true;
+      return true;
+    } catch (err) {
+      console.error('SMTP Verification failed:', err.code, err.message);
+      throw err;
+    }
   }
 
   /**
@@ -46,6 +56,9 @@ class EmailService {
    * Send OTP verification email
    */
   async sendOTP(email, otp, name) {
+    // Verify connection on first send
+    await this.verifyConnection();
+
     const mailOptions = {
       from: `"Spark FitLife" <${process.env.SMTP_EMAIL}>`,
       to: email,
@@ -54,7 +67,7 @@ class EmailService {
       html: `
         <div style="max-width: 480px; margin: 0 auto; font-family: 'Segoe UI', Arial, sans-serif;">
           <div style="background: linear-gradient(135deg, #1E88E5 0%, #FF6D00 100%); padding: 32px; border-radius: 16px 16px 0 0; text-align: center;">
-            <h1 style="color: #fff; margin: 0; font-size: 24px;">⚡ Spark FitLife</h1>
+            <h1 style="color: #fff; margin: 0; font-size: 24px;">Spark FitLife</h1>
           </div>
           <div style="background: #141414; padding: 32px; border-radius: 0 0 16px 16px; border: 1px solid #2a2a2a; border-top: none;">
             <p style="color: #e0e0e0; font-size: 16px; margin: 0 0 8px;">Hey <strong style="color: #FF6D00;">${name}</strong>,</p>
@@ -64,16 +77,21 @@ class EmailService {
             </div>
             <p style="color: #888; font-size: 13px; margin: 0 0 4px;">This code expires in <strong style="color: #e0e0e0;">10 minutes</strong>.</p>
             <p style="color: #888; font-size: 13px; margin: 0;">If you didn't request this, please ignore this email.</p>
-            <hr style="border: none; border-top: 1px solid #2a2a2a; margin: 24px 0;" />
-            <p style="color: #555; font-size: 11px; text-align: center; margin: 0;">Spark FitLife - Ignite Your Fitness Journey</p>
           </div>
         </div>
       `,
     };
 
-    const info = await this.getTransporter().sendMail(mailOptions);
-    console.log('OTP email sent:', info.messageId, 'to:', email);
-    return info;
+    try {
+      const info = await this.getTransporter().sendMail(mailOptions);
+      console.log('Message sent: %s', info.messageId);
+      return info;
+    } catch (err) {
+      // Reset transporter on error so it reinitializes next time
+      this.transporter = null;
+      this.verified = false;
+      throw err;
+    }
   }
 }
 
