@@ -26,7 +26,7 @@ class AuthService {
     }
 
     // Hash password before storing in OTP record
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Generate OTP
     const otp = emailService.generateOTP();
@@ -41,8 +41,10 @@ class AuthService {
       expiresAt,
     });
 
-    // Send OTP email
-    await emailService.sendOTP(email, otp, name);
+    // Send OTP email in background (don't wait for SMTP round-trip)
+    emailService.sendOTP(email, otp, name).catch((err) => {
+      console.error('Failed to send OTP email:', err.message);
+    });
 
     return {
       message: 'Verification code sent to your email',
@@ -123,7 +125,10 @@ class AuthService {
     otpRecord.attempts = 0;
     await otpRecord.save();
 
-    await emailService.sendOTP(email, otp, otpRecord.userData.name);
+    // Send in background
+    emailService.sendOTP(email, otp, otpRecord.userData.name).catch((err) => {
+      console.error('Failed to resend OTP email:', err.message);
+    });
 
     return { message: 'New verification code sent to your email', email };
   }

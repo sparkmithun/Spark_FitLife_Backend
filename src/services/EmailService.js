@@ -15,6 +15,8 @@ class EmailService {
       }
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
+        pool: true,
+        maxConnections: 3,
         auth: {
           user: process.env.SMTP_EMAIL,
           pass: process.env.SMTP_PASSWORD,
