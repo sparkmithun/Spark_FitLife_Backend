@@ -46,3 +46,17 @@ exports.commentRules = [
     .withMessage('Comment text is required')
     .isLength({ max: 500 }),
 ];
+
+exports.verifyOtpRules = [
+  body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
+  body('otp')
+    .trim()
+    .notEmpty()
+    .withMessage('OTP is required')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('OTP must be 6 digits'),
+];
+
+exports.resendOtpRules = [
+  body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
+];

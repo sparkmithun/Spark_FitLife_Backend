@@ -4,7 +4,25 @@ class AuthController {
   async register(req, res, next) {
     try {
       const result = await authService.register(req.body);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async verifyOTP(req, res, next) {
+    try {
+      const result = await authService.verifyOTP(req.body);
       res.status(201).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async resendOTP(req, res, next) {
+    try {
+      const result = await authService.resendOTP(req.body);
+      res.status(200).json(result);
     } catch (error) {
       next(error);
     }
